@@ -7,20 +7,20 @@ import time
 import datetime
 from pythonosc import osc_server, dispatcher, udp_client
 import threading
+import netifaces
 
 # Network Variables -- CHANGE THESE
-ip_address = "192.168.10.50"
 input_port = 8500
-broadcast_address = "192.168.10.255"
 broadcast_port = 9000
 
 # Other Settings -- Feel free to change
 show_help = True
-initial_time = 0 # in seconds
 
 # Global State Variables
+ip_address = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['addr']
+broadcast_address = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['broadcast']
 running = False
-time = initial_time 
+time = 0 
 
 feedback = udp_client.SimpleUDPClient(broadcast_address, broadcast_port, allow_broadcast=True)
 
@@ -62,33 +62,35 @@ style.theme_use('classic')
 
 fnt = font.Font(family='Helvetica', size=150, weight='bold')
 txt = StringVar()
+txt.set("00:00:00")
 lbl = ttk.Label(root, textvariable=txt, font=fnt, foreground="white", background="black")
 lbl.place(relx=0.5, rely=0.5, anchor=CENTER)
 
 fnt_instructions = font.Font(family='Helvetica', size=25, weight='bold')
 txt_instructions = StringVar()
-txt_instructions.set("Send /timer/start to {}:{} to start the timer".format(ip_address, input_port))
+txt_instructions.set("Listening at {}:{}\n/timer/start -> Start stopwatch\n/timer/stop -> Stop (pause) stopwatch\n/timer/reset -> Set time back to 00:00:00".format(ip_address, input_port))
 lbl_instructions = ttk.Label(root, textvariable=txt_instructions, font=fnt_instructions, foreground="white", background="black")
 if (show_help):
-  lbl_instructions.place(relx=0.5, rely=0.9, anchor=CENTER)
+  lbl_instructions.place(relx=0.5, rely=0.75, anchor=CENTER)
 
 def start_timer(*args):
   global running
-  running = True
-  root.after(1000, show_time)
-  txt_instructions.set("Send /timer/stop to {}:{} to stop the timer".format(ip_address, input_port))
+  if not running:
+    running = True
+    root.after(1000, show_time)
 
 def stop_timer(*args):
   global running
-  running = False
-  txt_instructions.set("Sent /timer/start to {}:{} to resume the timer\nSend /timer/reset to {}:{} to set the time back to 00:00:00".format(ip_address, input_port, ip_address, input_port))
+  if running:
+    running = False
 
 def reset_timer(*args):
   global running
   global time
-  time = initial_time 
+  time = 0 
+  txt.set("00:00:00")
+  feedback.send_message("/timer/time", "00:00:00")
   running = False
-  txt_instructions.set("Send /timer/start to {}:{} to start the timer".format(ip_address, input_port))
 
 dispatcher = dispatcher.Dispatcher()
 dispatcher.map("/timer/start", start_timer)
