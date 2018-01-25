@@ -69,9 +69,9 @@ lbl.place(relx=0.5, rely=0.5, anchor=CENTER)
 fnt_instructions = font.Font(family='Helvetica', size=25, weight='bold')
 txt_instructions = StringVar()
 txt_instructions.set("Listening at {}:{}\n/timer/start -> Start stopwatch\n/timer/stop -> Stop (pause) stopwatch\n/timer/reset -> Set time back to 00:00:00".format(ip_address, input_port))
-lbl_instructions = ttk.Label(root, textvariable=txt_instructions, font=fnt_instructions, foreground="white", background="black")
+lbl_instructions = ttk.Label(root, textvariable=txt_instructions, font=fnt_instructions, foreground="white", background="black", padding=30)
 if (show_help):
-  lbl_instructions.place(relx=0.5, rely=0.75, anchor=CENTER)
+  lbl_instructions.pack(side=BOTTOM)
 
 def start_timer(*args):
   global running
