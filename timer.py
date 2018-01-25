@@ -12,7 +12,7 @@ from threading import Timer, Thread
 # Network Variables -- CHANGE THESE
 input_port = 8500
 broadcast_port = 9000
-network_interface = 'en0'
+network_interface = 'eth0'
 
 # Other Settings -- Feel free to change
 show_help_after_start = False
