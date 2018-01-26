@@ -126,8 +126,6 @@ server = osc_server.BlockingOSCUDPServer(("0.0.0.0", input_port), dispatcher)
 server_thread = Thread(target=server.serve_forever)
 server_thread.start()
 
-start_timer()
-
 # This is a blocking function, will release when quit is called
 root.mainloop()
 
