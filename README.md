@@ -20,3 +20,5 @@ Feel free to change input and output ports in script
 cd fullscreen-osc-timer
 python3 timer.py
 ```
+
+Note: the timer is based on a differential between the start time and the current time, so the count will never be more than 1 second off.  However, this may cause strange jumps (+/- 1 sec) when starting and stopping; this is expeced and does not effect the accuracy of the timer.
