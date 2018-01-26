@@ -17,40 +17,22 @@ network_interface = 'eth0'
 # Other Settings -- Feel free to change
 show_help_after_start = False
 
-# Needed helper class
-class RepeatedTimer(object):
-  def __init__(self, interval, function, *args, **kwargs):
-    self._timer     = None
-    self.interval   = interval
-    self.function   = function
-    self.args       = args
-    self.kwargs     = kwargs
-    self.is_running = False
-
-  def _run(self):
-    self.is_running = False
-    self.start()
-    self.function(*self.args, **self.kwargs)
-
-  def start(self):
-    if not self.is_running:
-      self._timer = Timer(self.interval, self._run)
-      self._timer.start()
-      self.is_running = True
-
-  def stop(self):
-    self._timer.cancel()
-    self.is_running = False
-
 def quit(*args):
-  global timer
-  timer.stop()
+  stop_timer()
   root.destroy()
           
 def show_time():
-  global time
+  start = datetime.datetime.now()
+
+  global start_time
   global feeback
   global running
+
+  time_diff = datetime.datetime.now() - start_time
+  time = int(time_diff.total_seconds())
+
+  if (not running):
+    return
 
   # Calculate time
   hours = int(time / 3600)
@@ -68,30 +50,47 @@ def show_time():
   if (not show_help_after_start):
     txt_instructions.set("")
 
-  # Update Time
-  time += 1
+  end = datetime.datetime.now()
+  exec_time = end - start
+  root.after(int(998 - (exec_time.total_seconds() * 1000)), show_time)
 
 def start_timer(*args):
-  global timer
-  timer.start()
+  global running
+  global start_time
+  global stopped
+  global stop_time
+  if not running:
+    running = True
+    if stopped:
+      start_time = start_time + (datetime.datetime.now() - stop_time)
+    else:
+      start_time = datetime.datetime.now()
+    stopped = False
+    root.after(1000, show_time)
 
 def stop_timer(*args):
-  global timer
-  timer.stop()
+  global running
+  global stopped
+  global stop_time
+  if running:
+    stop_time = datetime.datetime.now()
+    stopped = True
+    running = False
 
 def reset_timer(*args):
-  global time
-  global timer
-  timer.stop()
-  time = 0 
+  global running
+  global stopped
+  running = False
+  stopped = False
   txt.set("00:00:00")
   feedback.send_message("/timer/time", "00:00:00")
 
 # Global State Variables
 ip_address = netifaces.ifaddresses(network_interface)[netifaces.AF_INET][0]['addr']
 broadcast_address = netifaces.ifaddresses(network_interface)[netifaces.AF_INET][0]['broadcast']
-time = 0 
-timer = RepeatedTimer(1, show_time)
+running = False
+start_time = None
+stopped = False
 
 feedback = udp_client.SimpleUDPClient(broadcast_address, broadcast_port, allow_broadcast=True)
 
@@ -102,6 +101,7 @@ root.configure(background='black')
 root.bind("x", quit)
 style = ttk.Style()
 style.theme_use('classic')
+root.config(cursor="none")
 
 fnt = font.Font(family='Helvetica', size=170, weight='bold')
 txt = StringVar()
