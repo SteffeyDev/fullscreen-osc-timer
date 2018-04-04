@@ -12,10 +12,13 @@ from threading import Timer, Thread
 # Network Variables -- CHANGE THESE
 input_port = 8500
 broadcast_port = 9000
-network_interface = 'eth0'
+network_interface = 'en0'
 
 # Other Settings -- Feel free to change
 show_help_after_start = False
+initial_mode = "timer" # Other option is "clock"
+initial_placement = "center" # Other options are "topright", "topleft", "bottomright", and "bottomleft"
+
 
 def quit(*args):
   stop_timer()
@@ -34,12 +37,19 @@ def show_time():
   if (not running):
     return
 
-  # Calculate time
-  hours = int(time / 3600)
-  minutes = int((time - (hours * 3600)) / 60)
-  seconds = time - (hours * 3600) - (minutes * 60)
+  time_string = ""
 
-  time_string = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+  if mode == "timer":
+
+    # Calculate time
+    hours = int(time / 3600)
+    minutes = int((time - (hours * 3600)) / 60)
+    seconds = time - (hours * 3600) - (minutes * 60)
+
+    time_string = '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+
+  elif mode == "clock":
+    time_string = datetime.datetime.now().strftime("%I:%M:%S %p")
 
   # Show the time left
   txt.set(time_string)
@@ -72,18 +82,43 @@ def stop_timer(*args):
   global running
   global stopped
   global stop_time
-  if running:
+  global mode
+
+  if mode == "timer" and running:
     stop_time = datetime.datetime.now()
     stopped = True
     running = False
 
 def reset_timer(*args):
+  global mode
   global running
   global stopped
-  running = False
-  stopped = False
-  txt.set("00:00:00")
-  feedback.send_message("/timer/time", "00:00:00")
+
+  if mode == "timer":
+    running = False
+    stopped = False
+    txt.set("00:00:00")
+    feedback.send_message("/timer/time", "00:00:00")
+
+
+def change_mode(addr, args):
+  global mode
+  old_mode = mode
+  if args[0] == "timer" or args[0] == "clock":
+    mode = args[0]
+    if mode == "timer" and old_mode == "clock":
+      reset_timer()
+    elif mode == "clock" and old_mode == "timer":
+      start_timer()
+  else:
+    print("Invalid mode:", args[0])
+
+def change_placement(addr, args):
+  global mode
+  if args[0] in ["center", "topright", "topleft", "bottomright", "bottomleft"]:
+    placement = args[0]
+  else:
+    print("Invalid placement:", args[0])
 
 # Global State Variables
 ip_address = netifaces.ifaddresses(network_interface)[netifaces.AF_INET][0]['addr']
@@ -91,6 +126,8 @@ broadcast_address = netifaces.ifaddresses(network_interface)[netifaces.AF_INET][
 running = False
 start_time = None
 stopped = False
+mode = initial_mode
+placement = initial_placement
 
 feedback = udp_client.SimpleUDPClient(broadcast_address, broadcast_port, allow_broadcast=True)
 
@@ -119,12 +156,18 @@ dispatcher = dispatcher.Dispatcher()
 dispatcher.map("/timer/start", start_timer)
 dispatcher.map("/timer/stop", stop_timer)
 dispatcher.map("/timer/reset", reset_timer)
+dispatcher.map("/timer/mode", change_mode)
+dispatcher.map("/timer/placement", change_placement)
 dispatcher.map("/timer/quit", quit)
 
 # We use BlockingOSCUDPServer to execute each incoming command in order
 server = osc_server.BlockingOSCUDPServer(("0.0.0.0", input_port), dispatcher)
 server_thread = Thread(target=server.serve_forever)
 server_thread.start()
+
+# Need to start clock if desired
+if initial_mode == "clock":
+  start_timer()
 
 # This is a blocking function, will release when quit is called
 root.mainloop()
