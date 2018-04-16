@@ -104,8 +104,8 @@ def reset_timer(*args):
 def change_mode(addr, args):
   global mode
   old_mode = mode
-  if args[0] == "timer" or args[0] == "clock":
-    mode = args[0]
+  if (len(args) > 0 and (args[0] == "timer" or args[0] == "clock")) or (len(addr.split("/")) > 2 and (addr.split("/")[3] == "timer"  or addr.split("/")[3] == "clock")):
+    mode = args[0] if len(args) > 0 else addr.split("/")[3]
     if mode == "timer" and old_mode == "clock":
       reset_timer()
     elif mode == "clock" and old_mode == "timer":
@@ -157,6 +157,8 @@ dispatcher.map("/timer/start", start_timer)
 dispatcher.map("/timer/stop", stop_timer)
 dispatcher.map("/timer/reset", reset_timer)
 dispatcher.map("/timer/mode", change_mode)
+dispatcher.map("/timer/mode/timer", change_mode)
+dispatcher.map("/timer/mode/clock", change_mode)
 dispatcher.map("/timer/placement", change_placement)
 dispatcher.map("/timer/quit", quit)
 
